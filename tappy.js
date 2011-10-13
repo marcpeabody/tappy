@@ -1,6 +1,5 @@
 if(typeof(twitterAccount)!="string"||twitterAccount=="")var twitterAccount="http://twitter.com/";
 if(typeof(tweetThisText)!="string"||tweetThisText=="")var tweetThisText=document.title+" "+document.URL;
-var tweetthislink=null;
 
 var birdSpeed=50;
 var birdSpaceVertical=16;
@@ -9,14 +8,15 @@ var spriteHeight=64;
 var spriteAniSpeed=72;
 var spriteAniSpeedSlow=Math.round(spriteAniSpeed*1.75);
 
+var theBird=null;
 var neededElems4random=10;
 var minElemWidth=Math.round(spriteWidth/3);
 var scareTheBirdMouseOverTimes=1; // number of quick hovers (n+1) needed to scare the bird
 var scareTheBirdTime=4000; // two hovers faster than this scare the bird
 var birdIsFlying=false;
 var scrollPos=0;
-var windowHeight=450;
 
+var windowHeight=450;
 if(typeof(window.innerHeight)=="number")windowHeight=window.innerHeight;
 else if(document.documentElement&&document.documentElement.clientHeight)windowHeight=document.documentElement.clientHeight;
 else if(document.body&&document.body.clientHeight)windowHeight=document.body.clientHeight;
@@ -26,87 +26,43 @@ if(typeof(window.innerWidth)=="number")windowWidth=window.innerWidth;
 else if(document.documentElement&&document.documentElement.clientWidth)windowWidth=document.documentElement.clientWidth;
 else if(document.body&&document.body.clientWidth)windowWidth=document.body.clientWidth;
 if(windowWidth<=spriteWidth)windowWidth=spriteWidth+1;
+
 // original tappy position (off screen)
-console.log(windowWidth);
-var birdPosX=-2*spriteWidth;
-//Math.round(Math.random()*(windowWidth-spriteWidth+200)-200);
-var birdPosY=Math.round(Math.random()*(windowHeight-spriteHeight+200));
-//-2*spriteHeight;
-console.log("x: "+birdPosX+"  y:"+birdPosY);
+var birdPosX = -2*spriteWidth;
+var birdPosY = Math.round(Math.random()*(windowHeight-spriteHeight+200));
 var timeoutAnimation=false;
-var timeoutFlight=false;
 var showButtonsTimeout=null;
 var hideButtonsTimeout=null;
-var scareTheBirdLastTime=0;
-var scareTheBirdCount=0;
 
-function tripleflapInit(reallystart){
-  if(typeof(reallystart)=="undefined"){
-    window.setTimeout("tripleflapInit(1)",250);
-    return;
-  }
-  if(!is_utf8(tweetThisText))tweetThisText=utf8_encode(tweetThisText);
-  var tweetthislink="http://twitter.com/home?status="+escape(tweetThisText);
-  var theBird=document.createElement("a");
-  theBird.setAttribute("id","theBird");
-  theBird.setAttribute("href",twitterAccount);
-  theBird.setAttribute("target","_blank");
-  theBird.style.display="block";
-  theBird.style.position="absolute";
-  theBird.style.left=birdPosX+"px";
-  theBird.style.top=birdPosY+"px";
-  theBird.style.width=spriteWidth+"px";
-  theBird.style.height=spriteHeight+"px";
-  theBird.style.background="url('"+birdSprite+"') no-repeat transparent";
-  theBird.style.backgroundPosition="-0px -0px";
-  theBird.style.zIndex="947";
-  theBird.onmouseover=function(){scareTheBird();showButtonsTimeout=window.setTimeout("showButtons(0,"+windowWidth+")",400);window.clearTimeout(hideButtonsTimeout);};
-  theBird.onmouseout=function(){hideButtonsTimeout=window.setTimeout("hideButtons()",50);};
-  document.body.appendChild(theBird);
-  var theBirdLtweet=document.createElement("a");
-  theBirdLtweet.setAttribute("id","theBirdLtweet");
-  theBirdLtweet.setAttribute("href",tweetthislink);
-  theBirdLtweet.setAttribute("target","_blank");
-  theBirdLtweet.setAttribute("title","tweet this");
-  theBirdLtweet.style.display="none";
-  theBirdLtweet.style.position="absolute";
-  theBirdLtweet.style.left="0px";
-  theBirdLtweet.style.top="-100px";
-  theBirdLtweet.style.background="url('"+birdSprite+"') no-repeat transparent";
-  theBirdLtweet.style.opacity="0";
-  theBirdLtweet.style.filter="alpha(opacity=0)";
-  theBirdLtweet.style.backgroundPosition="-64px -0px";
-  theBirdLtweet.style.width="58px";
-  theBirdLtweet.style.height="30px";
-  theBirdLtweet.style.zIndex="951";
-  theBirdLtweet.onmouseover=function(){window.clearTimeout(hideButtonsTimeout);};
-  theBirdLtweet.onmouseout=function(){hideButtonsTimeout=window.setTimeout("hideButtons()",50);};
-  document.body.appendChild(theBirdLtweet);
-  var theBirdLfollow=theBirdLtweet.cloneNode(false);
-  theBirdLfollow.setAttribute("id","theBirdLfollow");
-  theBirdLfollow.setAttribute("href",twitterAccount);
-  theBirdLfollow.setAttribute("title","follow me");
-  theBirdLfollow.style.backgroundPosition="-64px -30px";
-  theBirdLfollow.style.width="58px";
-  theBirdLfollow.style.height="20px";
-  theBirdLfollow.style.zIndex="952";
-  theBirdLfollow.onmouseover=function(){window.clearTimeout(hideButtonsTimeout);};
-  theBirdLfollow.onmouseout=function(){hideButtonsTimeout=window.setTimeout("hideButtons()",50);};
-  document.body.appendChild(theBirdLfollow);
-  var timeoutAnimation=window.setTimeout("animateSprite(0,0,0,0,null,true)",spriteAniSpeed);
-  window.onscroll=recheckposition;
-  recheckposition();
-}
-function animateSprite(row,posStart,posEnd,count,speed,onlySet){
+function animateSprite(row, posStart, posEnd, count, speed, onlySet){
   if(typeof(count)!="number"||count>posEnd-posStart)count=0;
-  document.getElementById("theBird").style.backgroundPosition="-"+Math.round((posStart+count)*spriteWidth)+"px -"+(spriteHeight*row)+"px";
+  poseTappy(row, (posStart+count));
   if(onlySet==true)return;
   if(typeof(speed)!="number")speed=spriteAniSpeed;
-  timeoutAnimation=window.setTimeout("animateSprite("+row+","+posStart+","+posEnd+","+(count+1)+","+speed+")",speed);
+  timeoutAnimation = window.setTimeout("animateSprite("+row+","+posStart+","+posEnd+","+(count+1)+","+speed+")",speed);
 }
+
+function poseTappy(row,column){
+  console.log("row: "+row+"  column: "+column);
+  var bgPosition = "-"+Math.round(column*spriteWidth)+"px -"+(spriteHeight*row)+"px";
+  theBird.style.backgroundPosition = bgPosition;
+}
+
+function updatePosition(){
+  birdPosX = parseInt(theBird.style.left);
+  birdPosY = parseInt(theBird.style.top);
+}
+
+function positionTappy(x, y){
+  console.log("X: "+x+"  Y: "+y);
+  theBird.style.left = x     + "px";
+  theBird.style.top  = (y+2) + "px";
+}
+
 function animateSpriteAbort(){
   window.clearTimeout(timeoutAnimation);
 }
+
 function recheckposition(force){ // make sure tappy is on screen
   console.log('recheck '+force);
   if(force!=true)force=false;
@@ -159,12 +115,6 @@ console.log("x: "+birdPosX+"  y:"+birdPosY);
   }
 }
 
-function thud(){
-  // fly into side of screen
-  // display thud
-  // chooseNewTarget
-}
-
 function chooseNewTarget(){
   var elemPosis=new Array();
   var obergrenze=scrollPos+spriteHeight+birdSpaceVertical;
@@ -196,10 +146,6 @@ function distanceNextFrame(distanceSoFar){
   }
 }
 
-function thud(){
-
-}
-
 function flyFromTo(startX,startY,targetX,targetY,distanceSoFar,direction){
   birdIsFlying = true;
   hideButtons();
@@ -219,7 +165,7 @@ function flyFromTo(startX,startY,targetX,targetY,distanceSoFar,direction){
 
     if(justStarted) showSpriteForDirectionNew(direction);
     var nextCall = "flyFromTo("+startX+","+startY+","+targetX+","+targetY+","+distanceSoFar+",'"+direction+"')";
-    timeoutFlight = window.setTimeout(nextCall, 50);
+    window.setTimeout(nextCall, 50);
 
     var distanceSoFarX = Math.round(distanceOfTravelX*percentComplete);
     var distanceSoFarY = Math.round(distanceOfTravelY*percentComplete);
@@ -240,41 +186,23 @@ function nextFrameIsFinalFrame(distanceSoFar, distanceOfTravel){
   var nextPercentComplete = Math.abs(nextDistanceSoFar/distanceOfTravel);
   return (nextPercentComplete >= 1.0);
 }
-// function nextFrameIsFinalFrame(distanceSoFar, distanceNeeded, distanceOfTravelX, distanceOfTravelY){
-//   var solvedFuture    = distanceSoFar + distanceNextFrame(distanceSoFar);
-//   var solvPercFuture  = Math.abs(solvedFuture/distanceNeeded);
-//   var solvDistXFuture = Math.round(distanceOfTravelX*solvPercFuture);
-//   var solvDistYFuture = Math.round(distanceOfTravelY*solvPercFuture);
-// 
-//   var moreFlying = Math.abs(solvDistXFuture) >= Math.abs(distanceOfTravelX) &&
-//                    Math.abs(solvDistYFuture) >= Math.abs(distanceOfTravelY);
-//   return moreFlying;
-// }
 
-function positionTappy(x, y){
-  document.getElementById("theBird").style.left = x + "px";
-  document.getElementById("theBird").style.top  = (y+2) + "px";
-}
-
-function scareTheBird(nul){
-  newTS=new Date().getTime();
-  if(scareTheBirdLastTime<newTS-scareTheBirdTime){
-    scareTheBirdCount=1;
-    scareTheBirdLastTime=newTS;
+var scareTheBirdLastTime=0;
+var scareTheBirdCount=0;
+function scareTheBird(){
+  newTS = new Date().getTime();
+  if(scareTheBirdLastTime < newTS-scareTheBirdTime){
+    scareTheBirdCount = 1;
+    scareTheBirdLastTime = newTS;
   }else{
     scareTheBirdCount++;
-    if(scareTheBirdCount>=scareTheBirdMouseOverTimes){
-      scareTheBirdCount=0;
-      scareTheBirdLastTime=0;
+    if(scareTheBirdCount >= scareTheBirdMouseOverTimes){
+      scareTheBirdCount = 0;
+      scareTheBirdLastTime = 0;
       // recheckposition(true);
       flyOff();
     }
   }
-}
-
-function updatePosition(){
-  birdPosX=parseInt(document.getElementById("theBird").style.left);
-  birdPosY=parseInt(document.getElementById("theBird").style.top);
 }
 
 function flyOff(){
@@ -289,12 +217,11 @@ function showButtons(step,minWidth){
   if(birdIsFlying)step=0;
   opacity=Math.round(step*15);
   if(opacity<0)opacity=0;
-  if(opacity>100)opacity=100;
+  else if(opacity>100)opacity=100;
   if(birdPosX<minWidth-300||birdPosX<minWidth/2){
     buttonPosX1=birdPosX+spriteWidth-15;
     buttonPosX2=birdPosX+spriteWidth-10;
-  }
-  else{
+  } else{
     buttonPosX1=birdPosX+16-parseInt(document.getElementById("theBirdLtweet").style.width);
     buttonPosX2=birdPosX+11-parseInt(document.getElementById("theBirdLfollow").style.width);
   }
@@ -382,25 +309,90 @@ function findDirection(direction, angle){
 function prepareForStopAnimation(direction){
   animateSpriteAbort();
   switch(direction){
-    case 'so':animateSprite(1,0,0,0,null,true);break;
-    case 'sw':animateSprite(1,2,2,0,null,true);break;
-    case 's':animateSprite(0,2,2,0,null,true);break;
-    case 'n':animateSprite(4,0,0,0,null,true);break;
-    case 'o':animateSprite(1,0,0,0,null,true);break;
-    case 'w':animateSprite(1,2,2,0,null,true);break;
-    default:animateSprite(0,0,0,0,null,true);
+    case 'so':poseTappy(1,0);break;
+    case 'sw':poseTappy(1,2);break;
+    case 's': poseTappy(0,2);break;
+    case 'n': poseTappy(4,0);break;
+    case 'o': poseTappy(1,0);break;
+    case 'w': poseTappy(1,2);break;
+    default:  poseTappy(0,0);
   }
-  timeoutAnimation=window.setTimeout("animateSprite(0,0,0,0,null,true)",spriteAniSpeed);
+  timeoutAnimation=window.setTimeout("poseTappy(0,0)",spriteAniSpeed);
 }
+
 function showSpriteForDirectionNew(direction){
   animateSpriteAbort();
   switch(direction){
-    case 'so':animateSprite(1,0,0,0,null,true);timeoutAnimation=window.setTimeout("animateSprite(1,1,1,0,null,true)",spriteAniSpeed);break;
-    case 'sw':animateSprite(1,2,2,0,null,true);timeoutAnimation=window.setTimeout("animateSprite(1,3,3,0,null,true)",spriteAniSpeed);break;
-    case 's':animateSprite(0,2,2,0,null,true);timeoutAnimation=window.setTimeout("animateSprite(0,3,3,0,null,true)",spriteAniSpeed);break;
-    case 'n':timeoutAnimation=window.setTimeout("animateSprite(4,0,3,0,"+spriteAniSpeedSlow+")",1);break;
-    case 'o':animateSprite(1,0,0,0,null,true);timeoutAnimation=window.setTimeout("animateSprite(2,0,3,0,"+spriteAniSpeedSlow+")",spriteAniSpeed);break;
-    case 'w':animateSprite(1,2,2,0,null,true);timeoutAnimation=window.setTimeout("animateSprite(3,0,3,0,"+spriteAniSpeedSlow+")",spriteAniSpeed);break;
-    default:animateSprite(0,0,0,0,null,true);
+    case 'so':poseTappy(1,0);timeoutAnimation=window.setTimeout("poseTappy(1,1)",spriteAniSpeed);break;
+    case 'sw':poseTappy(1,2);timeoutAnimation=window.setTimeout("poseTappy(1,3)",spriteAniSpeed);break;
+    case 's': poseTappy(0,2);timeoutAnimation=window.setTimeout("poseTappy(0,3)",spriteAniSpeed);break;
+    case 'n':                timeoutAnimation=window.setTimeout("animateSprite(4,0,3,0,"+spriteAniSpeedSlow+")",1);break;
+    case 'o': poseTappy(1,0);timeoutAnimation=window.setTimeout("animateSprite(2,0,3,0,"+spriteAniSpeedSlow+")",spriteAniSpeed);break;
+    case 'w': poseTappy(1,2);timeoutAnimation=window.setTimeout("animateSprite(3,0,3,0,"+spriteAniSpeedSlow+")",spriteAniSpeed);break;
+    default:  poseTappy(0,0);
   }
+}
+
+function tripleflapInit(reallystart){
+  if(typeof(reallystart)=="undefined"){
+    window.setTimeout("tripleflapInit(1)",250);
+    return;
+  }
+  if(!is_utf8(tweetThisText))tweetThisText=utf8_encode(tweetThisText);
+  var tweetthislink = "http://twitter.com/home?status="+escape(tweetThisText);
+  theBird = document.createElement("a");
+  theBird.setAttribute("id","theBird");
+  theBird.setAttribute("href",twitterAccount);
+  theBird.setAttribute("target","_blank");
+  theBird.style.display="block";
+  theBird.style.position="absolute";
+  theBird.style.left=birdPosX+"px";
+  theBird.style.top=birdPosY+"px";
+  theBird.style.width=spriteWidth+"px";
+  theBird.style.height=spriteHeight+"px";
+  theBird.style.background="url('"+birdSprite+"') no-repeat transparent";
+  theBird.style.backgroundPosition="-0px -0px";
+  theBird.style.zIndex="947";
+  theBird.onmouseover = function(){
+    scareTheBird();
+    // showButtonsTimeout=window.setTimeout("showButtons(0,"+windowWidth+")",400);
+    window.clearTimeout(hideButtonsTimeout);
+  };
+  theBird.onmouseout=function(){
+    hideButtonsTimeout=window.setTimeout("hideButtons()",50);
+  };
+  document.body.appendChild(theBird);
+  var theBirdLtweet=document.createElement("a");
+  theBirdLtweet.setAttribute("id","theBirdLtweet");
+  theBirdLtweet.setAttribute("href",tweetthislink);
+  theBirdLtweet.setAttribute("target","_blank");
+  theBirdLtweet.setAttribute("title","tweet this");
+  theBirdLtweet.style.display="none";
+  theBirdLtweet.style.position="absolute";
+  theBirdLtweet.style.left="0px";
+  theBirdLtweet.style.top="-100px";
+  theBirdLtweet.style.background="url('"+birdSprite+"') no-repeat transparent";
+  theBirdLtweet.style.opacity="0";
+  theBirdLtweet.style.filter="alpha(opacity=0)";
+  theBirdLtweet.style.backgroundPosition="-64px -0px";
+  theBirdLtweet.style.width="58px";
+  theBirdLtweet.style.height="30px";
+  theBirdLtweet.style.zIndex="951";
+  theBirdLtweet.onmouseover=function(){window.clearTimeout(hideButtonsTimeout);};
+  theBirdLtweet.onmouseout=function(){hideButtonsTimeout=window.setTimeout("hideButtons()",50);};
+  document.body.appendChild(theBirdLtweet);
+  var theBirdLfollow=theBirdLtweet.cloneNode(false);
+  theBirdLfollow.setAttribute("id","theBirdLfollow");
+  theBirdLfollow.setAttribute("href",twitterAccount);
+  theBirdLfollow.setAttribute("title","follow me");
+  theBirdLfollow.style.backgroundPosition="-64px -30px";
+  theBirdLfollow.style.width="58px";
+  theBirdLfollow.style.height="20px";
+  theBirdLfollow.style.zIndex="952";
+  theBirdLfollow.onmouseover=function(){window.clearTimeout(hideButtonsTimeout);};
+  theBirdLfollow.onmouseout=function(){hideButtonsTimeout=window.setTimeout("hideButtons()",50);};
+  document.body.appendChild(theBirdLfollow);
+  timeoutAnimation=window.setTimeout("poseTappy(0,0)",spriteAniSpeed);
+  window.onscroll=recheckposition;
+  recheckposition();
 }
