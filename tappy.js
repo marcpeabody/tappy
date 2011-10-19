@@ -34,16 +34,14 @@ var timeoutAnimation=false;
 var showButtonsTimeout=null;
 var hideButtonsTimeout=null;
 
-function animateSprite(row, posStart, posEnd, count, speed, onlySet){
+function animateSprite(row, posStart, posEnd, count, speed){
   if(typeof(count)!="number"||count>posEnd-posStart)count=0;
   poseTappy(row, (posStart+count));
-  if(onlySet==true)return;
   if(typeof(speed)!="number")speed=spriteAniSpeed;
   timeoutAnimation = window.setTimeout("animateSprite("+row+","+posStart+","+posEnd+","+(count+1)+","+speed+")",speed);
 }
 
 function poseTappy(row,column){
-  console.log("row: "+row+"  column: "+column);
   var bgPosition = "-"+Math.round(column*spriteWidth)+"px -"+(spriteHeight*row)+"px";
   theBird.style.backgroundPosition = bgPosition;
 }
@@ -54,7 +52,6 @@ function updatePosition(){
 }
 
 function positionTappy(x, y){
-  console.log("X: "+x+"  Y: "+y);
   theBird.style.left = x     + "px";
   theBird.style.top  = (y+2) + "px";
 }
@@ -80,62 +77,61 @@ function recheckposition(force){ // make sure tappy is on screen
   else if(document.body&&document.body.scrollTop)scrollPos=document.body.scrollTop;
   else if(document.documentElement&&document.documentElement.scrollTop)scrollPos=document.documentElement.scrollTop;
   updatePosition();
-  var tappyNotOnScreen = scrollPos+birdSpaceVertical>=birdPosY ||
-                         scrollPos+windowHeight-spriteHeight<birdPosY ||
-                         birdPosX < 0;
 console.log(scrollPos+' + '+birdSpaceVertical+' >= '+birdPosY);
 console.log(scrollPos+' + '+windowHeight+' - '+spriteHeight+ ' < '+birdPosY);
 console.log("offscreen? "+tappyNotOnScreen);
-  if(tappyNotOnScreen||force){
+  if(tappyNotOnScreen() || force){
     hideButtons();
-    elemPosis=chooseNewTarget();
-    if(elemPosis.length<1){
-      elemType=null;
-      elemNr=null;
-      elemTop=scrollPos+Math.round(Math.random()*(windowHeight-spriteHeight));
-      elemLeft=Math.round(Math.random()*(windowWidth-spriteWidth));
-      elemWidth=0;
-    }else{
-      newTarget=elemPosis[Math.round(Math.random()*(elemPosis.length-1))];
-      elemType=newTarget[0];
-      elemNr=newTarget[1];
-      elemTop=newTarget[2];
-      elemLeft=newTarget[3];
-      elemWidth=newTarget[4];
-    }
-    targetTop=elemTop-spriteHeight;
-    targetLeft=Math.round(elemLeft-spriteWidth/2+Math.random()*elemWidth);
-    if(targetLeft>windowWidth-spriteWidth-24)
-      targetLeft=windowWidth-spriteWidth-24;
-    else if(targetLeft<0)
-      targetLeft=0;
-    birdIsFlying=true;
-    flyFromTo(birdPosX,birdPosY,targetLeft,targetTop,0);
-console.log("x: "+birdPosX+"  y:"+birdPosY);
+    gotoTarget(randomTarget());
   }
 }
 
-function chooseNewTarget(){
-  var elemPosis=new Array();
-  var obergrenze=scrollPos+spriteHeight+birdSpaceVertical;
-  var untergrenze=scrollPos+windowHeight-birdSpaceVertical;
+function tappyNotOnScreen(){
+  return scrollPos+birdSpaceVertical>=birdPosY ||
+         scrollPos+windowHeight-spriteHeight<birdPosY ||
+         birdPosX < 0;
+}
+
+function gotoTarget(newTarget){
+  var targetTop  = 0;
+  var targetLeft = 0;
+  if(newTarget){
+    targetTop = newTarget[2] - spriteHeight;
+    targetLeft = Math.round(newTarget[3]-spriteWidth/2+Math.random()*newTarget[4]);
+  } else {
+    targetTop = (scrollPos + Math.round(Math.random()*(windowHeight-spriteHeight)) - spriteHeight);
+    targetLeft = Math.round(Math.round(Math.random()*(windowWidth-spriteWidth)) - spriteWidth/2)
+  }
+  targetLeft = Math.min(Math.max(targetLeft, 0), windowWidth-spriteWidth-24);
+  birdIsFlying=true;
+  flyFromTo(birdPosX,birdPosY,targetLeft,targetTop,0);
+}
+
+function randomTarget(){
+  var targets = availableTargets();
+  return targets[Math.round(Math.random()*(targets.length-1))];
+}
+
+function availableTargets(){
+  var elemPosis = new Array();
+  var obergrenze  = scrollPos+spriteHeight+birdSpaceVertical;
+  var untergrenze = scrollPos+windowHeight-birdSpaceVertical;
   for(var ce=0;ce<targetElems.length;ce++){
-    var elemType=targetElems[ce];
+    var elemType = targetElems[ce];
     var sumElem=document.getElementsByTagName(elemType).length;
     for(var cu=0;cu<sumElem;cu++){
-      var top=document.getElementsByTagName(elemType)[cu].offsetTop;
-      var left=document.getElementsByTagName(elemType)[cu].offsetLeft;
-      var width=document.getElementsByTagName(elemType)[cu].offsetWidth;
-      if(top<=obergrenze||top>=untergrenze||width<minElemWidth||left<0){
+      var el = document.getElementsByTagName(elemType)[cu];
+      if(el.offsetTop<=obergrenze || el.offsetTop>=untergrenze || el.offsetWidth<minElemWidth || el.offsetLeft<0){
         continue;
       }
-      elemPosis[elemPosis.length]=new Array(elemType,cu,top,left,width);
+      elemPosis[elemPosis.length] = new Array(elemType,cu,el.offsetTop,el.offsetLeft,el.offsetWidth);
       if(elemPosis.length>=neededElems4random)
         return elemPosis;
     }
   }
   return elemPosis;
 }
+
 function distanceNextFrame(distanceSoFar){
   if (distanceSoFar>birdSpeed/2) { // full speed
     return birdSpeed;
